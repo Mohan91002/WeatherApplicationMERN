@@ -36,9 +36,9 @@ export async function getLiveRegions(countries) {
   const rates = await getRates();
   /** @type {RegionWeather[]} */
   const results = [];
-  for (const chunk of chunk(countries, CHUNK_SIZE)) {
-    const { forecast, air } = await fetchChunk(chunk);
-    results.push(...merge(chunk, forecast, air, rates));
+  for (const batch of chunk(countries, CHUNK_SIZE)) {
+    const { forecast, air } = await fetchChunk(batch);
+    results.push(...merge(batch, forecast, air, rates));
   }
 
   // Only cache a result that actually contains live data, so a blocked or
