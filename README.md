@@ -195,7 +195,51 @@ vendor-neutral (Docker Compose / Kubernetes) deployment.
 
 ---
 
+## Branch workflow
+
+This repo follows a **trunk-based, feature-branch workflow**. `main` is the only
+long-lived branch — always green and deployable. All work happens on short-lived
+branches that are opened as pull requests, squash-merged, and then deleted, so
+`main` stays the single source of truth locally and remotely.
+
+```
+              ┌──────────── feature/fix branch ───────────┐
+ main ───●────┤  commit → push → Pull Request → CI green   ├──● (squash-merge)──► main
+   (trunk)    └────────────────────────────────────────────┘        │
+                                                          delete branch (local + remote)
+```
+
+### Branch naming
+
+| Prefix | Use for | Example |
+| ------ | ------- | ------- |
+| `feature/` | new functionality | `feature/hourly-forecast` |
+| `fix/`     | bug fixes | `fix/regions-chunk-tdz` |
+| `docs/`    | documentation only | `docs/api-examples` |
+| `chore/`   | tooling, deps, refactors | `chore/bump-react` |
+
+> Working from the Jira backlog? Name branches after the issue key —
+> `feature/WEA-<id>-<slug>` — and put the key in the commit subject.
+
+### Lifecycle
+
+1. **Branch off `main`:** `git checkout main && git pull && git checkout -b feature/<slug>`
+2. **Commit** focused changes with imperative subject lines.
+3. **Test locally** before pushing:
+   ```bash
+   cd backend && npm test      # node:test + supertest
+   cd frontend && npm test     # vitest
+   ```
+4. **Push & open a PR** against `main`. CI ([`.github/workflows/deploy.yml`](.github/workflows/deploy.yml))
+   runs the **backend + frontend tests on every PR**. Deploys never run from a PR.
+5. **Squash-merge when green**, then **delete the branch** (local + remote) — one commit lands on `main` per PR.
+6. **Deploy** happens only when changes land on `main` (see [Deployment](#deployment)).
+
+> Reference PRs: [#1](https://github.com/Mohan91002/WeatherApplicationMERN/pull/1) migrated the stack to MERN,
+> [#2](https://github.com/Mohan91002/WeatherApplicationMERN/pull/2) was a hotfix — both squash-merged and their branches removed.
+
 ## Contributing
 
-This repo uses a **feature-branch workflow** — branch off `main`, open a pull
-request, let CI run, then merge. Details in [CONTRIBUTING.md](CONTRIBUTING.md).
+Branch off `main`, open a pull request, let CI run, then squash-merge. Full
+details — commit conventions, PR checklist, remote setup — in
+[CONTRIBUTING.md](CONTRIBUTING.md).
