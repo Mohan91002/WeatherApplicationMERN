@@ -29,11 +29,10 @@ backend/.env.local
 crash.log
 
 # ---------------------------------------------------------------------------
-# CodeCarbon emissions-tracking output (generated measurement artifact)
+# CodeCarbon emissions-tracking output (generated measurement artifacts)
 # ---------------------------------------------------------------------------
 emissions.csv
-.codecarbon.config
-.codecarbon.lock
+.codecarbon*
 
 # ---------------------------------------------------------------------------
 # Editor / OS
