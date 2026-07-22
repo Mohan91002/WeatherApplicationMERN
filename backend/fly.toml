@@ -1,15 +1,16 @@
-# Fly.io deployment for the WeatherApplication .NET 10 API.
+# Fly.io deployment for the World Weather Node.js/Express API.
 #
 # The Docker build context is this backend/ folder (the Dockerfile lives in
 # cloud/ and expects that context), so deploy from here:
 #
 #   cd backend
 #   fly launch --no-deploy --copy-config --name <your-unique-app-name>   # first time
+#   fly secrets set MONGODB_URI="mongodb+srv://..."                      # optional (Atlas)
 #   fly deploy
 #
 # After deploy, note the URL (https://<app>.fly.dev) and:
 #   1) set the GitHub repo variable API_BASE_URL to it (for the SPA build), and
-#   2) if your Pages URL differs, update Cors__AllowedOrigins__0 below + `fly deploy`.
+#   2) if your Pages URL differs, update CORS_ALLOWED_ORIGINS below + `fly deploy`.
 
 app = "weatherapplication-api"
 primary_region = "iad"
@@ -18,10 +19,12 @@ primary_region = "iad"
   dockerfile = "../cloud/Dockerfile"
 
 [env]
-  ASPNETCORE_ENVIRONMENT = "Production"
-  ASPNETCORE_FORWARDEDHEADERS_ENABLED = "true"
+  NODE_ENV = "production"
+  PORT = "8080"
   # Allow the GitHub Pages SPA origin to call this API (CORS allow-list).
-  Cors__AllowedOrigins__0 = "https://mohan91002.github.io"
+  CORS_ALLOWED_ORIGINS = "https://mohan91002.github.io"
+  # MONGODB_URI is set as a secret (see `fly secrets set` above), not here.
+  # Without it the API runs on the bundled in-memory country seed.
 
 [http_service]
   internal_port = 8080

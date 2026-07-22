@@ -61,7 +61,7 @@ flowchart TD
 - **Zero-cost inputs.** Every external dependency is free:
   - APIs are **keyless** — Open-Meteo (weather/air), open.er-api (FX), flagcdn (flags).
   - Data is **open** — mledoze/countries, Wikidata (SPARQL), Natural Earth.
-  - Frameworks are **OSS** — .NET 10, Angular 18. No licences.
+  - Frameworks are **OSS** — Node.js, Express, React, MongoDB. No licences.
 - **Scope discipline.** Cut features that don't earn their keep — the 7-language
   i18n stack and the 7-day outlook were removed. Less code = less build, less test,
   less run, less maintenance.

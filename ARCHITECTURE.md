@@ -1,12 +1,14 @@
-# WeatherApplication — Architecture (vendor-neutral)
+# World Weather — Architecture (vendor-neutral)
 
-A cloud-agnostic view of the same two deployable units described in
+A cloud-agnostic view of the same deployable units described in
 [AWS_ARCHITECTURE.md](cloud/AWS_ARCHITECTURE.md), but expressed **without any AWS
 (or other proprietary) service** — only portable building blocks you can run on
 a single VM, on-prem, in Docker Compose, or on Kubernetes.
 
-- **Angular SPA** — static assets (`index.html`, hashed JS/CSS).
-- **.NET 10 API** — stateless container, owns *all* business logic.
+- **React SPA** — static assets (`index.html`, hashed JS/CSS).
+- **Node.js / Express API** — stateless container, owns *all* business logic.
+- **MongoDB** — persistent store for the country dataset (seeded on first run;
+  the API falls back to a bundled in-memory seed if it's unavailable).
 - **Reverse proxy** — TLS, serves the SPA, proxies `/api/*` to the API.
 
 The golden rule holds everywhere: **the browser carries no business logic**; it
@@ -26,10 +28,11 @@ flowchart TB
     end
 
     subgraph app["Application tier (containers)"]
-        spa["Angular SPA<br/>(static bundle)"]
-        api["★ .NET 10 API<br/>stateless · :8080<br/>/health probe<br/>in-memory cache (1h)"]
+        spa["React SPA<br/>(static Vite bundle)"]
+        api["★ Node/Express API<br/>stateless · :8080<br/>/health probe<br/>in-memory cache (1h)"]
     end
 
+    db[("MongoDB<br/>country dataset<br/>(seeded on first run)")]
     cache[("Shared cache (optional)<br/>Redis / Valkey<br/>— only when API replicas > 1")]
 
     subgraph upstream["External data (no API keys)"]
@@ -42,6 +45,7 @@ flowchart TB
     user -- HTTPS --> proxy
     proxy -- "/ (static)" --> spa
     proxy -- "/api/*" --> api
+    api -- "countries" --> db
     api -. "outbound HTTPS" .-> meteo
     api -. "outbound HTTPS" .-> fx
     api <-. "optional" .-> cache
@@ -67,12 +71,13 @@ In a normal deployment (API has egress) the fallback never fires.
 | DNS | Any DNS provider | Domain → proxy | Route 53 |
 | TLS | Let's Encrypt / internal CA | HTTPS certificates | ACM |
 | Edge / static | **Nginx / Caddy / Traefik** | Serve SPA, proxy API, SPA-route to `index.html` | CloudFront + S3 |
-| API compute | **Docker container** on VM / Compose / **Kubernetes** | Runs the .NET API, autoscale via replicas | App Runner |
+| API compute | **Docker container** on VM / Compose / **Kubernetes** | Runs the Node/Express API, autoscale via replicas | App Runner |
+| Database | **MongoDB** (self-hosted / Atlas) | Persistent country store | DocumentDB / Atlas |
 | Image registry | Any OCI registry (Harbor, GHCR, GitLab, Docker Hub) | Stores the API image | ECR |
 | CI/CD | Any runner (GitHub Actions, GitLab CI, Jenkins) | Test → build/push image → deploy → publish SPA | GitHub Actions + OIDC |
 | Cache (opt.) | **Redis / Valkey** | Shared cache when replicas > 1 | ElastiCache |
 | Monitoring | **Prometheus + Grafana + Loki** (or ELK) | Metrics, logs, dashboards, alerts | CloudWatch + SNS |
-| Secrets (opt.) | HashiCorp Vault / sealed secrets / env | Secrets if keyed upstreams are added | Secrets Manager |
+| Secrets | HashiCorp Vault / sealed secrets / env | `MONGODB_URI` and any keyed upstreams | Secrets Manager |
 | WAF (opt.) | ModSecurity / Traefik middleware | Edge protection / rate-limit | AWS WAF |
 
 ---
@@ -83,12 +88,13 @@ In a normal deployment (API has egress) the fallback never fires.
 1. DNS resolves the domain → reverse proxy.
 2. Proxy serves `index.html` + hashed JS/CSS (static bundle), with SPA fallback
    routing unknown paths to `index.html`.
-3. Angular boots, detects the browser locale, and calls the API.
+3. React boots and calls the API.
 
 **B. Live data**
 1. SPA → `GET /api/regions` (same origin via the proxy, or a CORS-allowed origin).
 2. API returns cached, merged data (weather + air + currency).
-3. On cache miss the API fetches Open-Meteo + FX, merges, and caches (1h).
+3. On cache miss the API loads countries from MongoDB, fetches Open-Meteo + FX,
+   merges, and caches (1h).
 
 **C. Fallback** (API host has no egress)
 1. `GET /api/regions` returns placeholders → SPA detects no live data.
@@ -111,16 +117,19 @@ In a normal deployment (API has egress) the fallback never fires.
 │        │ serves /dist                    │ proxy_pass         │
 │        ▼                                  ▼                    │
 │   [ SPA static files ]              [ api container :8080 ]   │
+│                                     [ mongodb :27017 ]        │
 │                                     [ redis :6379 (optional) ]│
 └──────────────────────────────────────────────────────────────┘
 ```
-One `docker compose up`: proxy + API (+ optional Redis). The SPA is built to a
-static folder the proxy serves. Good for demos, small prod, on-prem.
+The bundled [`docker-compose.yml`](docker-compose.yml) runs MongoDB + the API;
+put a proxy in front and serve the built SPA from a static folder. Good for
+demos, small prod, on-prem.
 
 ### 4b. Kubernetes (scale / HA)
 - **Ingress controller** (Nginx/Traefik) + **cert-manager** for TLS.
 - **API** as a `Deployment` (N replicas) + `Service`, `readiness`/`liveness` on `/health`,
   scaled by an `HorizontalPodAutoscaler`.
+- **MongoDB** as a managed service (Atlas) or a `StatefulSet` with persistent volumes.
 - **SPA** served either by the ingress from a static volume/CDN or a tiny Nginx pod.
 - **Redis/Valkey** `StatefulSet` (or managed) as the shared cache so replicas stay
   within upstream rate limits.
@@ -132,35 +141,39 @@ static folder the proxy serves. Good for demos, small prod, on-prem.
 
 | Variable | Purpose |
 | -------- | ------- |
-| `Cors__AllowedOrigins__0` | The real SPA origin (not `*`). Behind a same-origin proxy this can be the public URL. |
-| `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true` | Honour `X-Forwarded-Proto` so HTTPS redirect doesn't loop behind TLS termination. |
-| `ASPNETCORE_URLS` / container port | API listens on `:8080` in the container. |
-| SPA `API_BASE_URL` (build-time) | Point the SPA at the API. With a same-origin proxy, use a relative `/api`. **Note:** `weather.service.ts` currently hardcodes `http://localhost:5135` — parameterise it via an Angular environment/`define` before a prod build. |
+| `CORS_ALLOWED_ORIGINS` | Comma-separated list of the real SPA origin(s) (not `*`). Behind a same-origin proxy this can be the public URL. |
+| `MONGODB_URI` | MongoDB connection string. Unset/unreachable → the API runs on the bundled in-memory country seed. |
+| `PORT` | Port the API listens on (`8080` in the container, `5135` in local dev). |
+| SPA `VITE_API_BASE_URL` (build-time) | Point the SPA at the API. With a same-origin proxy, use a relative `/api` (empty string). Injected into `.env.production` at build time (see the CI workflows). |
 
 ---
 
 ## 6. Security
-- **TLS everywhere** — proxy terminates HTTPS; API honours forwarded proto.
-- **Same-origin or locked CORS** — `Cors:AllowedOrigins`, never `*`.
+- **TLS everywhere** — proxy terminates HTTPS.
+- **Same-origin or locked CORS** — `CORS_ALLOWED_ORIGINS`, never `*`.
 - **Container runs as non-root** on port 8080 (see `cloud/Dockerfile`).
-- **No secrets in the client** — none needed today (keyless upstreams); use Vault/sealed
-  secrets if that changes.
+- **Secrets stay server-side** — `MONGODB_URI` (and any future keyed upstreams) via
+  Vault/sealed secrets / a secrets manager, never in the client.
 - **Optional edge protection** — ModSecurity/Traefik middleware for rate-limiting.
 - **Image scanning** in CI before push.
 
 ## 7. Scaling & availability
 - **SPA is static** → trivially cacheable/replicable; put a CDN in front if desired.
 - **API is stateless** (only an in-memory 1h cache) → scale horizontally with replicas.
+- **MongoDB** provides the shared source of truth for the country data across replicas.
 - With **> 1 replica**, add **Redis/Valkey** as a shared cache so all instances share
-  results and stay within Open-Meteo/FX rate limits.
+  weather/FX results and stay within Open-Meteo/FX rate limits.
 - Health checks (`/health`) + rolling deploys give zero-downtime updates.
 
 ## 8. Local development
 ```bash
 # Terminal 1 — API (http://localhost:5135)
-dotnet run --project backend/WeatherApplication.csproj
+cd backend && npm install && npm run dev
 
-# Terminal 2 — SPA (http://localhost:4200; CORS pre-allowed for :4200)
-cd frontend && node dev-serve.mjs
+# Terminal 2 — SPA (http://localhost:5173; CORS pre-allowed for :5173)
+cd frontend && npm install && npm run dev
+
+# Optional — a local MongoDB
+docker compose up mongo
 ```
 See [DEPENDENCIES.md](DEPENDENCIES.md) for the full toolchain and package list.

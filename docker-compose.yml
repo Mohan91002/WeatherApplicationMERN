@@ -1,0 +1,33 @@
+# Local development stack: MongoDB + the World Weather API.
+# The React SPA runs separately (cd frontend && npm run dev) and talks to the
+# API on http://localhost:5135.
+#
+#   docker compose up            # start Mongo + API
+#   docker compose up mongo      # just the database (run the API via npm)
+#
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo-data:/data/db
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: ../cloud/Dockerfile
+    restart: unless-stopped
+    ports:
+      - '5135:8080'
+    environment:
+      PORT: '8080'
+      MONGODB_URI: 'mongodb://mongo:27017/weather'
+      # Vite dev server origin (the SPA runs on the host, not in Compose).
+      CORS_ALLOWED_ORIGINS: 'http://localhost:5173'
+    depends_on:
+      - mongo
+
+volumes:
+  mongo-data:

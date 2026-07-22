@@ -11,6 +11,10 @@ aws_region = "us-east-1"
 # you can leave the localhost default and re-apply after CloudFront exists.
 spa_origin = "https://REPLACE_WITH_CLOUDFRONT_OR_CUSTOM_DOMAIN"
 
+# --- Optional: MongoDB (e.g. MongoDB Atlas). Leave empty to run the API on its
+#     bundled in-memory country seed (no persistence). ---
+mongodb_uri = ""               # e.g. "mongodb+srv://user:pass@cluster.mongodb.net/weather"
+
 # --- Optional: custom domain for the SPA (leave empty to use *.cloudfront.net) ---
 domain_name    = ""            # e.g. "weather.example.com"
 hosted_zone_id = ""            # e.g. "Z0123456789ABCDEFGHIJ" (Route 53 zone for the domain)

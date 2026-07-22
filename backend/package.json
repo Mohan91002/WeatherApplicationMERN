@@ -1,0 +1,23 @@
+{
+  "name": "weather-api",
+  "version": "2.0.0",
+  "description": "Node.js + Express + MongoDB API for the World Weather dashboard — ALL business logic (Open-Meteo integration, FX rates, classification) lives here.",
+  "type": "module",
+  "engines": {
+    "node": ">=18.17"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test",
+    "seed": "node src/scripts/seed.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "mongoose": "^8.9.5"
+  },
+  "devDependencies": {
+    "supertest": "^7.0.0"
+  }
+}

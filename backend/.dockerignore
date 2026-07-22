@@ -1,6 +1,9 @@
-# Build context is the backend/ folder. Keep the image lean.
-bin/
-obj/
-Tests/
-*.user
-*.http
+# Docker build context is this backend/ folder. Keep the image lean.
+node_modules/
+npm-debug.log*
+.env
+.env.local
+tests/
+coverage/
+*.md
+.gitignore

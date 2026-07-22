@@ -1,25 +1,21 @@
 # ---------------------------------------------------------------------------
-# .NET / build artifacts
-# ---------------------------------------------------------------------------
-[Bb]in/
-[Oo]bj/
-[Oo]ut/
-[Dd]ebug/
-[Rr]elease/
-*.user
-*.suo
-.vs/
-
-# ---------------------------------------------------------------------------
-# Node / Angular  (frontend/.gitignore also covers these within frontend/)
+# Node / build artifacts  (backend/ and frontend/.gitignore also cover these)
 # ---------------------------------------------------------------------------
 **/node_modules/
 **/dist/
-**/.angular/
 **/out-tsc/
 **/coverage/
+**/.vite/
 npm-debug.log*
 yarn-error.log*
+
+# ---------------------------------------------------------------------------
+# Secrets — the backend .env may hold a real MONGODB_URI (backend/.gitignore
+# also covers this). The frontend .env holds only the localhost dev default and
+# IS committed so the app works after a fresh clone.
+# ---------------------------------------------------------------------------
+backend/.env
+backend/.env.local
 
 # ---------------------------------------------------------------------------
 # Terraform  (infra/.gitignore also covers these within infra/)
@@ -31,6 +27,13 @@ yarn-error.log*
 !*.tfvars.example
 .terraform.lock.hcl
 crash.log
+
+# ---------------------------------------------------------------------------
+# CodeCarbon emissions-tracking output (generated measurement artifact)
+# ---------------------------------------------------------------------------
+emissions.csv
+.codecarbon.config
+.codecarbon.lock
 
 # ---------------------------------------------------------------------------
 # Editor / OS

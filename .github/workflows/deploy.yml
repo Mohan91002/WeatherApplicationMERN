@@ -1,7 +1,7 @@
 name: build-test-deploy
 
-# Deploys the .NET API (container → ECR → App Runner) and the Angular SPA
-# (S3 + CloudFront). Uses GitHub OIDC to assume an AWS role — no static keys.
+# Deploys the Node.js/Express API (container → ECR → App Runner) and the React
+# SPA (S3 + CloudFront). Uses GitHub OIDC to assume an AWS role — no static keys.
 #
 # Required repo secrets/vars:
 #   vars.AWS_REGION            e.g. us-east-1
@@ -26,12 +26,18 @@ permissions:
 jobs:
   backend-test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-dotnet@v6
+      - uses: actions/setup-node@v7
         with:
-          dotnet-version: '10.0.x'
-      - run: dotnet test backend/Tests/WeatherApplication.Tests.csproj -c Release --nologo
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm test
 
   frontend-test:
     runs-on: ubuntu-latest
@@ -43,11 +49,11 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: '20'
-      - run: corepack enable
-      - run: yarn install --frozen-lockfile
-      - run: yarn build
-      # karma.conf.js already defines a hardened headless Chrome launcher.
-      - run: node_modules/.bin/ng test --watch=false
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
 
   deploy:
     needs: [backend-test, frontend-test]
@@ -83,25 +89,26 @@ jobs:
       - name: Deploy API to App Runner
         run: aws apprunner start-deployment --service-arn ${{ vars.APPRUNNER_SERVICE_ARN }}
 
-      # --- SPA: build Angular, sync to S3, invalidate CloudFront ---
+      # --- SPA: build React (Vite), sync to S3, invalidate CloudFront ---
       - uses: actions/setup-node@v7
         with:
           node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
       - name: Build SPA
         working-directory: frontend
         run: |
-          corepack enable
-          yarn install --frozen-lockfile
+          npm ci
           # Inject the public API URL (empty = same-origin) into the prod env file.
-          sed -i "s|__API_BASE_URL__|${{ vars.API_BASE_URL }}|g" src/environments/environment.production.ts
-          yarn build
+          sed -i "s|__API_BASE_URL__|${{ vars.API_BASE_URL }}|g" .env.production
+          npm run build
 
       - name: Sync SPA to S3
         run: |
-          aws s3 sync frontend/dist/weather-frontend/browser s3://${{ vars.SPA_BUCKET }} \
+          aws s3 sync frontend/dist s3://${{ vars.SPA_BUCKET }} \
             --delete --cache-control "public,max-age=31536000,immutable" \
             --exclude index.html
-          aws s3 cp frontend/dist/weather-frontend/browser/index.html s3://${{ vars.SPA_BUCKET }}/index.html \
+          aws s3 cp frontend/dist/index.html s3://${{ vars.SPA_BUCKET }}/index.html \
             --cache-control "no-cache"
 
       - name: Invalidate CloudFront
