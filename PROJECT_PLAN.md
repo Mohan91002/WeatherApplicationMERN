@@ -170,7 +170,7 @@ This app was built conversationally with an AI agent + one human reviewer.
 | People | 3.5–4 FTE | 1 human (review/direction) + agent |
 | Effort | ~368 h | ~15–20 human prompts + review |
 | Build cost | $20k–$60k | LLM usage ≈ **$20–$80** + reviewer time |
-| Tests written | manual | 75 automated tests generated + run |
+| Tests written | manual | 31 automated tests (18 backend + 13 frontend) generated + run |
 
 **Prompts used in this session (high‑level):** ~15 substantive prompts
 (backend split, live currency, world map, run/verify, official languages, rename +
