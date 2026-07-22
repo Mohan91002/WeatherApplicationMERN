@@ -1,8 +1,8 @@
-# Dependencies & Requirements — WeatherApplication
+# Dependencies & Requirements — World Weather (MERN)
 
-Everything needed to build and run the two units: the **.NET 10 API** (backend)
-and the **Angular 18 SPA** (frontend). Extracted from `backend/WeatherApplication.csproj`,
-`backend/Tests/WeatherApplication.Tests.csproj`, and `frontend/package.json`.
+Everything needed to build and run the two units: the **Node.js/Express API**
+(backend, MongoDB-backed) and the **React + TypeScript (Vite) SPA** (frontend).
+Extracted from `backend/package.json` and `frontend/package.json`.
 
 ---
 
@@ -10,73 +10,77 @@ and the **Angular 18 SPA** (frontend). Extracted from `backend/WeatherApplicatio
 
 | Tool | Required | Verified in this environment | Notes |
 | ---- | -------- | ---------------------------- | ----- |
-| **.NET SDK** | 10.0+ | `10.0.100` ✅ | Builds & runs the API and the xUnit tests. |
-| **Node.js** | 18.19+ / 20+ / 22+ | `v24.12.0` ✅ | Runs the Angular CLI. Node 24 works fine. |
-| **Angular CLI** | 18.2 (local, in `node_modules`) | present ✅ | Invoked via `node`, not a global `ng`. |
-| **yarn** | 1.22+ *(optional)* | **not installed** ⚠️ | Not required — use the node launcher below. |
-| **npm** | bundled with Node | `11.18.0` | Unreliable in this environment for some ops; deps are already vendored. |
-| **Docker** | *(deploy only)* | — | For the container image (`Dockerfile`). |
+| **Node.js** | 18.17+ / 20+ / 22+ | `v24.12.0` ✅ | Runs both the API and the Vite toolchain. Node 24 works fine. |
+| **npm** | bundled with Node | `11.18.0` ✅ | Installs deps and runs the scripts. |
+| **MongoDB** | 6+ *(optional for local dev)* | **not installed** ⚠️ | The API degrades gracefully to a bundled in-memory seed when absent. Use MongoDB Atlas or `docker compose up mongo` for persistence. |
+| **Docker** | *(deploy / optional local Mongo)* | — | For the container image (`cloud/Dockerfile`) and `docker-compose.yml`. |
 
-> **Environment quirk:** `yarn`/global `ng` are not on `PATH`. The repo works
-> around this with [`frontend/dev-serve.mjs`](frontend/dev-serve.mjs), which spawns
-> the local Angular CLI directly through `node`.
+> The API needs no database to boot: if `MONGODB_URI` is unset or unreachable it
+> serves the 253-country dataset from `backend/src/data/countries.js`.
 
 ---
 
-## 2. Backend — .NET (NuGet)
+## 2. Backend — Node.js / Express (npm, `backend/package.json`)
 
-### Runtime (`backend/WeatherApplication.csproj`, `net10.0`)
-| Package | Version | Purpose |
-| ------- | ------- | ------- |
-| `Microsoft.AspNetCore.OpenApi` | `10.0.0` | OpenAPI document generation for the minimal API. |
-| `Microsoft.OpenApi` | `2.7.6` | **Pinned** transitively-safe version. Overrides the vulnerable `2.0.0` pulled by the package above — fixes **NU1903 / GHSA-v5pm-xwqc-g5wc** (high; circular schema refs can terminate OpenAPI parsing). `2.7.5+` is the first patched 2.x release; staying on 2.x preserves API compatibility. |
-
-Uses the ASP.NET Core shared framework (`Microsoft.NET.Sdk.Web`) for hosting,
-DI, `HttpClient`, `MemoryCache`, CORS, etc. — no extra packages needed.
-
-### Test (`backend/Tests/WeatherApplication.Tests.csproj`, `net10.0`)
-| Package | Version | Purpose |
-| ------- | ------- | ------- |
-| `Microsoft.NET.Test.Sdk` | `17.12.0` | Test host/runner. |
-| `xunit` | `2.9.2` | Test framework. |
-| `xunit.runner.visualstudio` | `2.8.2` | VS/`dotnet test` adapter. |
-| `Microsoft.AspNetCore.Mvc.Testing` | `10.0.0` | Boots the API in-memory via `WebApplicationFactory<Program>`. |
-
-### Build / run
-```bash
-dotnet restore backend/WeatherApplication.csproj
-dotnet build   backend/WeatherApplication.csproj -c Release
-dotnet run     --project backend/WeatherApplication.csproj   # http://localhost:5135
-dotnet test    backend/Tests/WeatherApplication.Tests.csproj
-```
-
----
-
-## 3. Frontend — Angular (npm, `frontend/package.json`)
+Runs on ES modules; type `"module"`. No build step — executed directly with Node.
 
 ### Runtime dependencies
 | Package | Version | Purpose |
 | ------- | ------- | ------- |
-| `@angular/core`, `common`, `compiler`, `forms`, `router`, `animations` | `^18.2.0` | Angular 18 framework (standalone + signals). |
-| `@angular/platform-browser`, `platform-browser-dynamic` | `^18.2.0` | Browser bootstrap. |
-| `rxjs` | `~7.8.0` | Reactive streams (HTTP, state). |
-| `tslib` | `^2.3.0` | TypeScript runtime helpers. |
-| `zone.js` | `~0.14.10` | Angular change-detection zones. |
+| `express` | `^4.21.2` | HTTP server, routing, JSON body parsing. |
+| `cors` | `^2.8.5` | CORS allow-list for the SPA origin(s). |
+| `mongoose` | `^8.9.5` | MongoDB ODM — country schema, seeding, queries. |
+
+Uses Node's built-in global `fetch` (Open-Meteo / FX calls), `AbortSignal.timeout`
+(request timeouts), and a small hand-rolled TTL cache — no extra packages needed.
 
 ### Dev dependencies
 | Package | Version | Purpose |
 | ------- | ------- | ------- |
-| `@angular/cli`, `@angular-devkit/build-angular`, `@angular/compiler-cli` | `^18.2.0` | Build/serve toolchain. |
-| `typescript` | `~5.5.2` | Compiler. |
-| `karma`, `karma-*`, `jasmine-core`, `@types/jasmine` | see file | Unit-test runner (Karma + Jasmine). |
+| `supertest` | `^7.0.0` | Drives the Express app in-memory for endpoint tests. |
 
-### Install / build / run
+Tests run on Node's built-in test runner (`node --test`) — no Jest/Mocha needed.
+
+### Install / run / test
+```bash
+cd backend
+npm install
+npm run dev     # node --watch src/server.js  → http://localhost:5135
+npm start       # node src/server.js
+npm test        # node --test
+npm run seed    # force a MongoDB re-seed from the bundled dataset
+```
+
+---
+
+## 3. Frontend — React + TypeScript (Vite, `frontend/package.json`)
+
+### Runtime dependencies
+| Package | Version | Purpose |
+| ------- | ------- | ------- |
+| `react`, `react-dom` | `^18.3.1` | React 18 UI runtime. |
+
+### Dev dependencies
+| Package | Version | Purpose |
+| ------- | ------- | ------- |
+| `vite`, `@vitejs/plugin-react` | `^5.4` / `^4.3` | Dev server + production bundler. |
+| `typescript` | `~5.6.3` | Compiler / type-checker. |
+| `sass` | `^1.83.0` | Compiles the component `.scss` styles. |
+| `vitest`, `jsdom` | `^2.1` / `^25` | Unit-test runner + DOM environment. |
+| `@testing-library/react`, `@testing-library/jest-dom` | `^16` / `^6` | Component testing utilities. |
+| `@types/react`, `@types/react-dom` | `^18.3` | React type definitions. |
+
+### Install / build / run / test
 ```bash
 cd frontend
-npm install                         # or: yarn install  (deps already vendored here)
-node dev-serve.mjs                  # ng serve on http://localhost:4200 (no global ng/yarn needed)
-node node_modules/@angular/cli/bin/ng.js build   # production build → frontend/dist/
+npm install
+npm run dev       # Vite dev server → http://localhost:5173
+npm run build     # type-check + production build → frontend/dist/
+npm test          # vitest run
 ```
+
+The API base URL is read from `VITE_API_BASE_URL` (`.env` for dev,
+`.env.production` for builds; empty = same origin).
 
 ---
 
@@ -92,8 +96,9 @@ egress failure the **browser** relays them and the backend still does all mergin
 | flagcdn | `flagcdn.com` | Flag images (fetched by the browser). |
 | Google Fonts | `fonts.googleapis.com` / `fonts.gstatic.com` | UI web fonts (frontend). |
 
-> No secrets/keys are required. If keyed upstreams are ever added, store them in a
-> secrets manager (see the deployment docs) — never in the client.
+> No secrets/keys are required. A managed MongoDB (e.g. MongoDB Atlas) connection
+> string is the only optional secret — store it as `MONGODB_URI` in a secrets
+> manager (see the deployment docs), never in the client.
 
 ---
 
@@ -101,8 +106,9 @@ egress failure the **browser** relays them and the backend still does all mergin
 
 | Dependency | Where | Purpose |
 | ---------- | ----- | ------- |
-| Docker | `cloud/Dockerfile`, `backend/.dockerignore` | Multi-stage API container (non-root, port 8080; build context `backend/`). |
+| Docker | `cloud/Dockerfile`, `backend/.dockerignore`, `docker-compose.yml` | Multi-stage API container (non-root, port 8080; build context `backend/`) + local Mongo stack. |
 | Terraform | `cloud/infra/*.tf` | Infrastructure-as-code (AWS topology). |
+| MongoDB Atlas *(or self-hosted Mongo)* | runtime `MONGODB_URI` | Persistent country store in production. |
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) (vendor-neutral) and
 [cloud/AWS_ARCHITECTURE.md](cloud/AWS_ARCHITECTURE.md) (AWS) for how these fit together.

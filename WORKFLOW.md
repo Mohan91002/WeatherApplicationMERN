@@ -63,12 +63,12 @@ use one branch per sub-task. Bugs use `fix/WEA-<id>-<slug>`, spikes use
 ### Sprint 1 — Foundation & design
 | Ticket | Story | Epic | Branch |
 | ------ | ----- | ---- | ------ |
-| WEA-101 | Scaffold .NET 10 API + CORS + OpenAPI | BACKEND | `feature/WEA-101-scaffold-api` |
+| WEA-101 | Scaffold Node/Express API + CORS + MongoDB | BACKEND | `feature/WEA-101-scaffold-api` |
 | WEA-102 | Countries dataset served at /api/countries | BACKEND | `feature/WEA-102-countries-dataset` |
 | WEA-103 | WeatherClassifier (code/AQI/°C→°F) | BACKEND | `feature/WEA-103-weather-classifier` |
 | WEA-104 | Open-Meteo integration (chunk/retry/merge/cache) | BACKEND | `feature/WEA-104-open-meteo-integration` |
 | WEA-105 | Browser-relay fallback POST /api/regions/merge | BACKEND | `feature/WEA-105-browser-relay-fallback` |
-| WEA-106 | Angular scaffold + weather service + models | FRONTEND | `feature/WEA-106-angular-scaffold` |
+| WEA-106 | React scaffold + weather API client + types | FRONTEND | `feature/WEA-106-react-scaffold` |
 | WEA-107 | UX design + prototypes | PMUX | `feature/WEA-107-ux-design` |
 
 ### Sprint 2 — Data enrichment & cards

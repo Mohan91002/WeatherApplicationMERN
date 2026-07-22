@@ -1,6 +1,6 @@
 name: deploy-spa-pages
 
-# Builds the Angular SPA and publishes it to GitHub Pages at
+# Builds the React (Vite) SPA and publishes it to GitHub Pages at
 #   https://mohan91002.github.io/WeatherApplication/
 #
 # The SPA needs the API URL baked in at build time: set the repo variable
@@ -33,16 +33,19 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: '20'
-      - run: corepack enable
-      - run: yarn install --frozen-lockfile
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
       - name: Inject API base URL (empty = same origin, i.e. no data until set)
-        run: sed -i "s|__API_BASE_URL__|${{ vars.API_BASE_URL }}|g" src/environments/environment.production.ts
-      - name: Build SPA with the Pages base-href
-        run: node_modules/.bin/ng build --base-href "/WeatherApplication/"
+        run: sed -i "s|__API_BASE_URL__|${{ vars.API_BASE_URL }}|g" .env.production
+      - name: Build SPA with the Pages base path
+        run: npm run build
+        env:
+          BASE_PATH: /WeatherApplication/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: frontend/dist/weather-frontend/browser
+          path: frontend/dist
 
   deploy:
     needs: build

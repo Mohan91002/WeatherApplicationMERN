@@ -18,7 +18,7 @@ Name branches by type + short kebab description:
 | `feature/` | new functionality | `feature/hourly-forecast` |
 | `fix/`     | bug fixes | `fix/aqi-rounding` |
 | `docs/`    | documentation only | `docs/api-examples` |
-| `chore/`   | tooling, deps, refactors | `chore/bump-angular` |
+| `chore/`   | tooling, deps, refactors | `chore/bump-react` |
 
 > Working from the Jira backlog? Name branches after the issue key —
 > `feature/WEA-<id>-<slug>` — and put the key in the commit subject (e.g.
@@ -30,8 +30,8 @@ See [README → Getting started](README.md#getting-started) to run the apps. Run
 the tests before pushing:
 
 ```bash
-dotnet test backend/Tests/WeatherApplication.Tests.csproj
-cd frontend && node node_modules/@angular/cli/bin/ng.js test --watch=false
+cd backend && npm test          # node:test unit + supertest integration
+cd frontend && npm test         # vitest
 ```
 
 ## 3. Commit
@@ -53,7 +53,7 @@ published — see [cloud/DEPLOY.md](cloud/DEPLOY.md).
 
 ## Architectural rule
 
-Keep **all business logic in the .NET backend** (`backend/`). The Angular
+Keep **all business logic in the Node/Express backend** (`backend/`). The React
 frontend (`frontend/`) is presentation-only — it renders what the API returns
 and holds no domain logic.
 

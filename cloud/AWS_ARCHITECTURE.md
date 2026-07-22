@@ -1,7 +1,7 @@
 # WeatherApplication — AWS Architecture
 
-Production topology for the two deployable units: the **Angular SPA** (static,
-edge-delivered) and the **.NET 10 API** (container). Provisioned by the
+Production topology for the two deployable units: the **React SPA** (static,
+edge-delivered) and the **Node/Express API** (container). Provisioned by the
 Terraform in [`infra/`](infra/); deployed by [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml).
 
 ---
@@ -25,12 +25,12 @@ Terraform in [`infra/`](infra/); deployed by [`.github/workflows/deploy.yml`](..
                     └───────────┬───────────┘       │
                         (origin │ OAC, private)     │
                     ┌───────────▼───────────┐       │
-                    │      S3 (private)      │       │   Angular SPA bundle
+                    │      S3 (private)      │       │   React SPA bundle
                     │   index.html, JS, CSS  │       │
                     └───────────────────────┘       │
                                                      │
                                          ┌───────────▼────────────┐
-                                         │     AWS App Runner      │  .NET 10 API container
+                                         │     AWS App Runner      │  Node/Express API container
                                          │  autoscale 1..N, :8080  │  health check /health
                                          │  TLS terminated at edge │
                                          └───────────┬────────────┘
@@ -57,8 +57,8 @@ flowchart TB
         acm["ACM (us-east-1)<br/>TLS certificate"]
     end
 
-    s3["S3 (private)<br/>Angular SPA bundle<br/>readable only via CloudFront OAC"]
-    apprunner["★ AWS App Runner<br/>.NET 10 API container · :8080<br/>autoscale 1..N · /health"]
+    s3["S3 (private)<br/>React SPA bundle<br/>readable only via CloudFront OAC"]
+    apprunner["★ AWS App Runner<br/>Node/Express API container · :8080<br/>autoscale 1..N · /health"]
 
     subgraph upstream["External data (no API keys)"]
         meteo["Open-Meteo<br/>weather + air"]
@@ -106,8 +106,9 @@ merging/classification. No business logic in the client.
 | DNS | **Route 53** | Domain → CloudFront / App Runner (optional) | `aws_route53_record.spa` |
 | TLS | **ACM** (us-east-1) | Certificate for the custom domain | `aws_acm_certificate.spa` |
 | Edge/CDN | **CloudFront** | HTTPS, caching, SPA error-routing to `index.html` | `aws_cloudfront_distribution.spa` + `origin_access_control` |
-| SPA storage | **S3** (private) | Hosts the built Angular bundle; readable only via CloudFront OAC | `aws_s3_bucket.spa` + `bucket_policy` |
-| API compute | **App Runner** | Runs the .NET container, autoscaling, `/health` probe | `aws_apprunner_service.api` |
+| SPA storage | **S3** (private) | Hosts the built React (Vite) bundle; readable only via CloudFront OAC | `aws_s3_bucket.spa` + `bucket_policy` |
+| API compute | **App Runner** | Runs the Node container, autoscaling, `/health` probe | `aws_apprunner_service.api` |
+| Database | **MongoDB Atlas** (external) | Persistent country store via `MONGODB_URI` secret | managed outside Terraform |
 | Image registry | **ECR** | Stores the API image (scan-on-push) | `aws_ecr_repository.api` |
 | CI/CD | **GitHub Actions + OIDC** | Test → build/push image → deploy API → sync SPA | `.github/workflows/deploy.yml` |
 | Monitoring | **CloudWatch + SNS** | Logs, dashboard, alarms (5xx, p95 latency, CPU) | `infra/monitoring.tf` |
@@ -121,7 +122,7 @@ merging/classification. No business logic in the client.
 **A. First page load**
 1. Browser resolves the domain (Route 53) → CloudFront.
 2. CloudFront serves `index.html` + hashed JS/CSS from S3 (private, via OAC), cached at the edge.
-3. Angular boots, detects locale, and calls the API.
+3. React boots and calls the API.
 
 **B. Live data**
 1. SPA → `GET https://<api>/api/regions` (CORS-allowed origin).

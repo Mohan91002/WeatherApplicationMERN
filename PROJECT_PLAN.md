@@ -14,38 +14,38 @@ monthly cost), and a **go‑live plan**.
 
 | Area | Detail |
 | ---- | ------ |
-| Backend | .NET 10 minimal API (`WeatherApplication`): endpoints `/health`, `/api/countries`, `/api/regions`, `POST /api/regions/merge` |
-| Backend services | `WeatherClassifier`, `CurrencyRatesService`, `RegionWeatherService`; in‑memory cache; typed `HttpClient` |
+| Backend | Node.js/Express API: endpoints `/health`, `/api/countries`, `/api/regions`, `POST /api/regions/merge` |
+| Backend services | `weatherClassifier`, `currencyRatesService`, `regionWeatherService`; in‑memory TTL cache; native `fetch` |
+| Database | MongoDB (Mongoose) — country collection seeded on first run, in‑memory seed fallback |
 | Data | 253 countries + India union territories (name, capital, flag, coords, currency, founding year, official language) |
 | Integrations | Open‑Meteo (weather + air quality), open.er‑api (FX), flagcdn (flags), Wikidata + Natural Earth + mledoze (build‑time data) |
-| Frontend | Angular 18 SPA (English‑only): station cards, world‑extremes header, interactive world‑map backdrop |
+| Frontend | React 18 + TypeScript (Vite) SPA (English‑only): station cards, world‑extremes header, interactive world‑map backdrop |
 | Frontend features | Sort (country/capital/AQI/year), search, favourites, infinite scroll + scroll‑up unload, currency, timezone (IST · UTC+5:30), founding year, official language |
-| Tests | Backend xUnit **42**, Frontend Karma/Jasmine **33** |
+| Tests | Backend node:test/supertest, Frontend Vitest + Testing Library |
 
 ---
 
 ## 2. Skills & technology used
 
 **Backend**
-- C# 13 / .NET 10, ASP.NET Core **Minimal APIs**
-- Dependency Injection, `IMemoryCache`, `IHttpClientFactory` (typed clients)
-- `System.Text.Json` (custom DTOs, snake_case mapping)
+- **Node.js** + **Express** (ES modules), native global `fetch`
+- **MongoDB** + **Mongoose** (country schema, seeding, graceful fallback)
+- In‑memory TTL cache; typed‑JSDoc services
 - Resilience: retry, graceful fallback, chunking
-- Testing: **xUnit**, `WebApplicationFactory` integration tests
-- OpenAPI
+- Testing: **node:test** + **supertest** integration tests
 
 **Frontend**
-- TypeScript, **Angular 18** standalone components
-- **Signals** (`signal`, `computed`, `effect`), new control flow (`@if/@for/@defer`)
-- RxJS (`forkJoin`, `switchMap`, `retry`, `catchError`)
+- TypeScript, **React 18** (function components + hooks), **Vite**
+- Hooks (`useState`, `useMemo`, `useEffect`, `useRef`), React Context for shared map‑focus state
+- `fetch` + async/await (`Promise.all`, retry, cache)
 - SCSS design system, responsive layout, accessibility (focus rings, reduced‑motion)
 - `Intl` API (locale number/time)
 - SVG data‑viz (equirectangular map projection), interactive pan/zoom on card hover
-- Testing: **Karma + Jasmine**, `HttpTestingController`
+- Testing: **Vitest + Testing Library**
 
 **Data engineering / tooling**
 - Node.js ETL scripts, GeoJSON, **Wikidata SPARQL**, orthographic/equirectangular projection math
-- Git, Angular CLI, dotnet CLI, npm/yarn
+- Git, Vite, Node, npm
 
 **Design**
 - Distinctive visual direction (a weather‑station board), typography pairing, motion, colour systems
@@ -57,13 +57,13 @@ monthly cost), and a **go‑live plan**.
 ```
                         ┌──────────────────────────────────────────┐
                         │                 Browser                   │
-                        │   Angular 18 SPA (static assets)          │
+                        │   React 18 + TS SPA (static Vite assets)  │
                         │   • station cards, world map               │
                         └───────────────┬───────────────────────────┘
                                         │ HTTPS (REST)
                                         ▼
                         ┌──────────────────────────────────────────┐
-                        │        .NET 10 API (WeatherApplication)    │
+                        │     Node/Express API (+ MongoDB)           │
                         │  /health           /api/countries          │
                         │  /api/regions      /api/regions/merge      │
                         │                                            │
@@ -95,8 +95,8 @@ optional ElastiCache for shared cache when running >1 instance.
 | ---- | ---------- |
 | Product Owner | 0.25 |
 | Scrum Master | 0.25 |
-| Backend engineer (.NET) | 1.0 |
-| Frontend engineer (Angular) | 1.0 |
+| Backend engineer (Node.js) | 1.0 |
+| Frontend engineer (React) | 1.0 |
 | QA engineer | 0.5 |
 | DevOps / Cloud | 0.5 |
 | UX / Designer | 0.5 |
@@ -121,7 +121,7 @@ optional ElastiCache for shared cache when running >1 instance.
 
 | Sprint | Focus | Stories | Points |
 | ------ | ----- | :-----: | :----: |
-| Sprint 1 | Backend core (API, dataset, classifier, Open-Meteo, relay) + Angular scaffold + UX design | 7 | 35 |
+| Sprint 1 | Backend core (API, dataset, classifier, Open-Meteo, relay, MongoDB) + React scaffold + UX design | 7 | 35 |
 | Sprint 2 | Data enrichment (FX, currency, year, language) + design system, station card, regions panel | 7 | 31 |
 | Sprint 3 | Interactive map, infinite scroll, responsive + backend/frontend tests + Dockerize + CORS config | 7 | 32 |
 | Sprint 4 | CI/CD, AWS Terraform, observability + manual QA/a11y + hardening buffer | 5 | 34 |
@@ -223,10 +223,10 @@ low.
 
 | Service | Purpose |
 | ------- | ------- |
-| **S3** | Host the Angular static bundle |
+| **S3** | Host the React (Vite) static bundle |
 | **CloudFront** | CDN + HTTPS for the SPA |
 | **ECR** | Store the API container image |
-| **App Runner** *(simple)* or **ECS Fargate + ALB** *(scalable)* | Run the .NET API container |
+| **App Runner** *(simple)* or **ECS Fargate + ALB** *(scalable)* | Run the Node/Express API container |
 | **Route 53** | DNS |
 | **ACM** | TLS certificates (free) |
 | **CloudWatch** | Logs, metrics, dashboard, alarms |

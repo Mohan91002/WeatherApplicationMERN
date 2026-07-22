@@ -62,8 +62,12 @@ resource "aws_apprunner_service" "api" {
       image_configuration {
         port = "8080"
         runtime_environment_variables = {
-          ASPNETCORE_FORWARDEDHEADERS_ENABLED = "true"
-          Cors__AllowedOrigins__0             = var.spa_origin
+          NODE_ENV             = "production"
+          PORT                 = "8080"
+          CORS_ALLOWED_ORIGINS = var.spa_origin
+          # MongoDB connection string (e.g. MongoDB Atlas). Empty -> the API runs
+          # on its bundled in-memory country seed.
+          MONGODB_URI = var.mongodb_uri
         }
       }
     }

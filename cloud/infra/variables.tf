@@ -11,7 +11,14 @@ variable "aws_region" {
 variable "spa_origin" {
   description = "Public URL of the SPA, used for the API CORS allow-list."
   type        = string
-  default     = "http://localhost:4200"
+  default     = "http://localhost:5173"
+}
+
+variable "mongodb_uri" {
+  description = "MongoDB connection string (e.g. MongoDB Atlas). Empty -> the API uses its bundled in-memory country seed."
+  type        = string
+  default     = ""
+  sensitive   = true
 }
 
 variable "domain_name" {

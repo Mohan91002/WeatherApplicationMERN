@@ -1,33 +1,36 @@
 # syntax=docker/dockerfile:1
-# Multi-stage build for the WeatherApplication .NET 10 API.
+# Multi-stage build for the World Weather Node.js/Express API.
 # Build CONTEXT is the backend/ folder. Build from the repo root with:
 #   docker build -f cloud/Dockerfile -t weatherapplication-api backend/
-# The Angular SPA is built + deployed separately (S3/CloudFront), not in this image.
+# The React SPA is built + deployed separately (S3/CloudFront or GitHub Pages),
+# not in this image.
 
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM node:22-alpine AS build
 WORKDIR /src
 
-# Restore first (better layer caching).
-COPY WeatherApplication.csproj ./
-RUN dotnet restore WeatherApplication.csproj
+# Install production dependencies first (better layer caching).
+COPY package.json package-lock.json* ./
+RUN npm ci --omit=dev
 
-# Copy the rest and publish (Tests/ excluded via backend/.dockerignore).
-COPY . .
-RUN dotnet publish WeatherApplication.csproj -c Release -o /app /p:UseAppHost=false
-
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+FROM node:22-alpine AS runtime
 WORKDIR /app
-COPY --from=build /app ./
+ENV NODE_ENV=production
 
-# Listen on 8080 (the non-root default in .NET 8+ images).
-ENV ASPNETCORE_URLS=http://+:8080
-ENV ASPNETCORE_ENVIRONMENT=Production
-# Honour X-Forwarded-Proto/For from the TLS-terminating edge (App Runner / ALB /
-# CloudFront) so HttpsRedirection doesn't loop and client IPs are correct.
-ENV ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
+# Bring in the pruned production node_modules and the application source.
+COPY --from=build /src/node_modules ./node_modules
+COPY package.json ./
+COPY src ./src
 
+# App Runner / load balancers terminate TLS at the edge; the app serves HTTP.
+ENV PORT=8080
 EXPOSE 8080
-# Run as the image's built-in non-root user.
-USER $APP_UID
 
-ENTRYPOINT ["dotnet", "WeatherApplication.dll"]
+# MongoDB connection is provided at runtime (env). Without it the API degrades
+# gracefully to the bundled in-memory country seed.
+#   ENV MONGODB_URI=mongodb+srv://...
+#   ENV CORS_ALLOWED_ORIGINS=https://app.example.com
+
+# Run as the node image's built-in non-root user.
+USER node
+
+CMD ["node", "src/server.js"]
