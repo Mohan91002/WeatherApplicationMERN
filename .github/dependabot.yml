@@ -1,0 +1,77 @@
+version: 2
+
+# Automated dependency updates for both units, the root tooling, GitHub Actions
+# and the Docker image. Patch/minor updates are grouped into a single PR per
+# ecosystem to cut noise; the auto-merge workflow then merges them once CI is
+# green (majors stay open for review).
+
+updates:
+  # --- Backend API (Node.js/Express) ---
+  - package-ecosystem: npm
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - backend
+    commit-message:
+      prefix: 'chore(deps)'
+    groups:
+      backend-minor-patch:
+        patterns: ['*']
+        update-types: [minor, patch]
+
+  # --- Frontend SPA (React/TS/Vite) ---
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - frontend
+    commit-message:
+      prefix: 'chore(deps)'
+    groups:
+      frontend-minor-patch:
+        patterns: ['*']
+        update-types: [minor, patch]
+
+  # --- Root tooling (husky) ---
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    labels:
+      - dependencies
+      - ci
+    commit-message:
+      prefix: 'chore(deps)'
+
+  # --- GitHub Actions workflows ---
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels:
+      - dependencies
+      - ci
+    commit-message:
+      prefix: 'ci(deps)'
+
+  # --- API container image (cloud/Dockerfile) ---
+  - package-ecosystem: docker
+    directory: /cloud
+    schedule:
+      interval: weekly
+      day: monday
+    labels:
+      - dependencies
+      - devops
+    commit-message:
+      prefix: 'chore(deps)'

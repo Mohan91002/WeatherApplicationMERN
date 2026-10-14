@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- this module intentionally co-locates the provider with its hook. */
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 
 /** A place the background map should pan/zoom to. */

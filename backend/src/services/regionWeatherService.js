@@ -100,7 +100,9 @@ async function getArray(url) {
         await delay(2000);
         continue;
       }
-      console.warn(`[weather] Open-Meteo request failed; empty result for this chunk (${err instanceof Error ? err.message : err}).`);
+      console.warn(
+        `[weather] Open-Meteo request failed; empty result for this chunk (${err instanceof Error ? err.message : err}).`,
+      );
       return [];
     }
   }
@@ -126,8 +128,7 @@ function merge(countries, forecast, air, rates) {
     const usAqi = air[i]?.current?.us_aqi;
     const aqi = usAqi != null ? Math.round(usAqi) : -1;
 
-    const currencyRate =
-      country.currencyCode && rates[country.currencyCode] != null ? rates[country.currencyCode] : -1;
+    const currencyRate = country.currencyCode && rates[country.currencyCode] != null ? rates[country.currencyCode] : -1;
 
     return {
       country: country.country,

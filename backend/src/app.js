@@ -31,7 +31,6 @@ export function createApp() {
   });
 
   // Central error handler.
-  // eslint-disable-next-line no-unused-vars
   app.use((err, _req, res, _next) => {
     console.error('[api] unhandled error:', err);
     res.status(500).json({ error: 'Internal server error' });

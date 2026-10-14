@@ -126,9 +126,7 @@ async function fetchRates(): Promise<Record<string, number>> {
  * and air-quality arrays, padded to the chunk size so they stay index-aligned
  * with the country list even when a request fails.
  */
-async function fetchChunk(
-  countries: CountryInfo[],
-): Promise<{ forecast: ForecastResult[]; air: AirQualityResult[] }> {
+async function fetchChunk(countries: CountryInfo[]): Promise<{ forecast: ForecastResult[]; air: AirQualityResult[] }> {
   const latitude = countries.map((c) => c.latitude).join(',');
   const longitude = countries.map((c) => c.longitude).join(',');
 

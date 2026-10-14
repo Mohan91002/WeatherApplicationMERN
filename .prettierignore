@@ -1,0 +1,17 @@
+# Dependencies / build output
+node_modules
+dist
+coverage
+
+# Lockfiles (generated)
+package-lock.json
+
+# Docs are hand-formatted
+*.md
+
+# Generated data — reformatting would produce enormous, meaningless diffs
+backend/src/data/countries.js
+frontend/src/components/worldMapData.ts
+
+# Terraform / infra (not a Prettier language)
+cloud/
