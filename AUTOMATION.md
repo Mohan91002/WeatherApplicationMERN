@@ -31,7 +31,13 @@ Shared config: [`.prettierrc.json`](.prettierrc.json) · [`.prettierignore`](.pr
 
 ---
 
-## 2. Continuous integration — [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
+## 2. Continuous integration — [`.github/workflow-templates/ci.yml`](.github/workflow-templates/ci.yml)
+
+> **Activation:** the workflow files live in
+> [`.github/workflow-templates/`](.github/workflow-templates/) and must be copied
+> into `.github/workflows/` once (see §2a) — they could not be committed to
+> `.github/workflows/` directly because this branch was pushed by a GitHub App
+> without the `workflows` permission.
 
 On every PR and push to `main`, two parallel jobs run the full gate:
 
@@ -40,6 +46,14 @@ On every PR and push to `main`, two parallel jobs run the full gate:
 
 Runs are path-cached by each package's `package-lock.json`, and superseded runs
 are cancelled via a `concurrency` group.
+
+### 2a. Activating the workflows (one-time)
+
+```bash
+npm run automation:install-workflows   # copies workflow-templates/*.yml -> .github/workflows/
+git add .github/workflows && git commit -m "ci: activate CI, CodeQL and auto-merge workflows"
+git push
+```
 
 ---
 
@@ -50,7 +64,7 @@ tooling**, **GitHub Actions** and the **Docker** image. Minor/patch updates are
 grouped per ecosystem to reduce noise; labels + commit prefixes are applied
 automatically.
 
-### Auto-merge — [`.github/workflows/dependabot-auto-merge.yml`](.github/workflows/dependabot-auto-merge.yml)
+### Auto-merge — [`.github/workflow-templates/dependabot-auto-merge.yml`](.github/workflow-templates/dependabot-auto-merge.yml)
 
 Dependabot **patch/minor** PRs are auto-approved and squash-merged once required
 checks pass. **Major** bumps stay open for human review.
@@ -60,7 +74,7 @@ checks pass. **Major** bumps stay open for human review.
 
 ---
 
-## 4. Security scanning — [`.github/workflows/codeql.yml`](.github/workflows/codeql.yml)
+## 4. Security scanning — [`.github/workflow-templates/codeql.yml`](.github/workflow-templates/codeql.yml)
 
 CodeQL SAST for the JS/TS code runs on PRs, on `main`, and weekly. Findings land
 in the repo's **Security → Code scanning** tab. (Terraform already enables ECR
