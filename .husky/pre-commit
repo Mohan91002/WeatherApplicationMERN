@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+# Fast local gate: lint + format-check both packages before the commit lands.
+# The full test/coverage/typecheck gate runs in CI (.github/workflows/ci.yml).
+# Bypass for emergencies with:  git commit --no-verify
+npm run lint || exit 1
+npm run format:check || exit 1
