@@ -5,14 +5,14 @@
 # The React SPA is built + deployed separately (S3/CloudFront or GitHub Pages),
 # not in this image.
 
-FROM node:22-alpine AS build
+FROM node:26-alpine AS build
 WORKDIR /src
 
 # Install production dependencies first (better layer caching).
 COPY package.json package-lock.json* ./
 RUN npm ci --omit=dev
 
-FROM node:22-alpine AS runtime
+FROM node:26-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 
